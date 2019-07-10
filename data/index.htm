@@ -23,21 +23,24 @@
 </head>
 <body id="index" style="margin:0; padding:0;" onload="onBodyLoad()">
   <div id="uptime"></div>
+  <div id="date"></div>
+  <div id="epoch"></div>
+  <div id="sun"></div>
   <div id="controls" style="display: block; border: 1px solid rgb(68, 68, 68); padding: 5px; margin: 5px; width: 362px; background-color: rgb(238, 238, 238);">
     <label>Period (ms):</label>
     <input type="number" id="refresh-rate"/>
     <input type="button" id="start-button" value="Start"/>
     <input type="button" id="stop-button" value="Stop"/>
   </div>
-  <div id="heap"></div>
+  <!--<div id="heap"></div>
   <div id="analog"></div>
   <div id="digital"></div>
   <div id="pins"></div>
-  <div><textarea id="code"></textarea></div>
+  <div><textarea id="code"></textarea></div>-->
   
-    <script type="text/javascript" src="graphs_unpacked.js"></script>
+  <!--    <script type="text/javascript" src="graphs_unpacked.js"></script>-->
   <script type="text/javascript">
-    var heap,temp,digi;
+    //var heap,temp,digi;
     var reloadPeriod = 1000;
     var running = false;
     
@@ -48,10 +51,13 @@
         if (xh.readyState == 4){
           if(xh.status == 200) {
             var res = JSON.parse(xh.responseText);
-            heap.add(res.heap);
-            temp.add(res.analog);
-            digi.add(res.gpio);
-			document.getElementById("uptime").innerHTML=res.uptime;
+            //heap.add(res.heap);
+            //temp.add(res.analog);
+            //digi.add(res.gpio);
+            document.getElementById("uptime").innerHTML=res.uptime;
+            document.getElementById("date").innerHTML=res.date;
+            document.getElementById("epoch").innerHTML=res.epoch;
+            document.getElementById("sun").innerHTML=res.sunrise+" "+res.sunset+" "+res.currentTime+" "+res.state;
             if(running) setTimeout(loadValues, reloadPeriod);
           } else running = false;
         }
@@ -111,12 +117,12 @@
       //}
       //temp = createGraph(document.getElementById("analog"), "Temperature", 100, 128, 10, 40, false, "cyan", calcThermistor);
       
-      temp = createGraph(document.getElementById("analog"), "Analog Input", 100, 128, 0, 1023, false, "cyan");
+      /*temp = createGraph(document.getElementById("analog"), "Analog Input", 100, 128, 0, 1023, false, "cyan");
       heap = createGraph(document.getElementById("heap"), "Current Heap", 100, 125, 0, 30000, true, "orange");
       digi = createDigiGraph(document.getElementById("digital"), "GPIO", 100, 400, [0, 4, 5, 12,13,14,15,16], "gold");
 	  createTogglePin(12);
 	  createTogglePin(13);
-	  createTogglePin(15);
+	  createTogglePin(15);*/
       run();
     }
   </script>

@@ -141,7 +141,7 @@ int NTPClient::getDayOfYear() const {
 }
 int NTPClient::getMinuteOfDay() const {
   struct tm ts = this->getTime();
-  return ts.tm_min+ts.tm_hour*24;
+  return ts.tm_min+ts.tm_hour*60;
 }
 
 String NTPClient::getFormattedTime() const {

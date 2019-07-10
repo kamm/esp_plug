@@ -9,9 +9,10 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 3600, 0);
 
 #define LED 2  //On board LED
+#define RELAY 0  //On board LED
 
-String WIFI_SSID("kamm");
-String WIFI_PASS("lama19ro");
+String WIFI_SSID("Wawrzyniec");
+String WIFI_PASS("12345678");
 String HOSTNAME("esp");
 
 void scheduler();
@@ -22,8 +23,8 @@ void everyDay();
 
 uint8_t initDone=0;
 uint8_t timeClientUpdate=1;
-uint16_t sunset;
-uint16_t sunrise;
+
+SunTime sunTime_;
 
 geoposition WARSZAWA = {.lat = 52.2298, .lng = 21.0118};
 
@@ -31,11 +32,14 @@ void setup()
 {
 	Serial.begin( 74880 );
 
-	pinMode( LED,OUTPUT );
+	pinMode(LED, OUTPUT);
+	pinMode(RELAY, OUTPUT);
 
 	initializeWiFi(WIFI_SSID, WIFI_PASS, HOSTNAME,WIFI_STA);
+	Serial.println("Starting http server");
 	initializeHTTPServer();
 	setTimeClient(&timeClient);
+	setSunTime(&sunTime_);
 	timeClient.begin();
 	timer1_isr_init();
       	timer1_attachInterrupt(scheduler);
@@ -64,21 +68,24 @@ void scheduler(){
 }
 
 void everySecond(){
-	uint16_t off = 18*24+50;
-	uint16_t on = 18*24+55;
-	Serial.printf("%s %lu %d %d %d",timeClient.getIsoDateTime().c_str(), millis(), timeClient.getMinuteOfDay(), off, on);
-	if(timeClient.getMinuteOfDay() >= off && timeClient.getMinuteOfDay() <= on){
+	Serial.printf("%s %lu %d %d %d",timeClient.getIsoDateTime().c_str(), millis(), timeClient.getMinuteOfDay(), sunTime_.sunrise, sunTime_.sunset);
+	sunTime_.currentTime = timeClient.getMinuteOfDay();
+	if(sunTime_.currentTime > sunTime_.sunrise && sunTime_.currentTime < sunTime_.sunset){
 		digitalWrite(LED,HIGH);
-		Serial.println("   ON");
+		digitalWrite(RELAY,HIGH);
+		Serial.println("OFF");
+		sunTime_.state=0;
 	}else{
 		digitalWrite(LED,LOW);
-		Serial.println("   OFF");
+		digitalWrite(RELAY,LOW);
+		Serial.println("ON");
+		sunTime_.state=1;
 	}
 }
 
 void everyMinute(){
-	Serial.printf("Wschod slonca o: %02d:%02d\n", sunrise/60, sunrise%60);
-	Serial.printf("Zachod slonca o: %02d:%02d\n", sunset/60, sunset%60);
+	Serial.printf("Wschod slonca o: %02d:%02d\n", sunTime_.sunrise/60, sunTime_.sunrise%60);
+	Serial.printf("Zachod slonca o: %02d:%02d\n", sunTime_.sunset/60, sunTime_.sunset%60);
 }
 
 void everyHour(){
@@ -88,8 +95,9 @@ void everyHour(){
 void everyDay(){
 	Serial.println("daily");
 	struct tm ts = timeClient.getTime();
-	sunrise = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNRISE)+120;
-	sunset = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNSET)+120;
+	sunTime_.sunrise = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNRISE);
+	sunTime_.sunset = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNSET);
+
 }
 
 void loop()

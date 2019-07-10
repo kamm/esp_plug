@@ -1,3 +1,4 @@
+#pragma once
 #include <WString.h> 
 #include <FS.h>
 #include <ESP8266WiFi.h>
@@ -5,9 +6,15 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <NTPClient.h>
-#ifndef __WIFI_H__
-#define __WIFI_H_
-using namespace std;
+
+
+typedef struct SunTime{
+        uint16_t sunset;
+        uint16_t sunrise;
+        uint16_t currentTime;
+        uint8_t state;
+} SunTime;
+
 	String getContentType(String filename);
 	bool handleFileRead(String path);
 	void initializeWiFi(String, String, String, WiFiMode_t);
@@ -19,4 +26,4 @@ using namespace std;
 	void initializeHTTPServer();
 	void handleClient();
 	void setTimeClient(NTPClient *);
-#endif
+	void setSunTime(SunTime *);

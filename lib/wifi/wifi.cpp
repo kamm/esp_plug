@@ -3,9 +3,14 @@
 ESP8266WebServer server(80);
 File fsUploadFile;
 NTPClient *tc;
+SunTime *sunTime;
 
 void setTimeClient(NTPClient *t){
 	tc = t;
+}
+
+void setSunTime(SunTime *s){
+	sunTime = s;
 }
 
 String getContentType(String filename) {
@@ -257,17 +262,25 @@ void initializeHTTPServer(){
 	//get heap status, analog input value and all GPIO statuses in one json call
 	server.on("/all", HTTP_GET, []() {
 		String json = "{";
-		json += "\"heap\":" + String(ESP.getFreeHeap());
-		json += ", \"analog\":" + String(analogRead(A0));
-		json += ", \"gpio\":" + String((uint32_t)(((GPI | GPO) & 0xFFFF) | ((GP16I & 0x01) << 16)));
+		json += "\"test\":\"test1\"";
+		//json += "\"heap\":" + String(ESP.getFreeHeap());
+		//json += ", \"analog\":" + String(analogRead(A0));
+		//json += ", \"gpio\":" + String((uint32_t)(((GPI | GPO) & 0xFFFF) | ((GP16I & 0x01) << 16)));
 		json += ", \"uptime\":\"" + uptime() + "\"";
+		json += ", \"date\":\"" + tc->getIsoDateTime() + "\"";
+		json += ", \"epoch\":\"" + String(tc->getEpochTime()) + "\"";
+		json += ", \"sunrise\":\"" + String(sunTime->sunrise) + "\"";
+		json += ", \"sunset\":\"" + String(sunTime->sunset) + "\"";
+		json += ", \"state\":\"" + String(sunTime->state) + "\"";
+		json += ", \"currentTime\":\"" + String(sunTime->currentTime) + "\"";
+
 		json += "}";
 		server.send(200, "text/json", json);
 		json = String();
 	});
 
 	server.on("/date",HTTP_GET, []() {
-		String output = "{date:'"+tc->getIsoDateTime()+"'}";
+		String output = "{date:''}";
 		server.send(200,"text/json",output);
 		output = String();
 	});
