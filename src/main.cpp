@@ -6,7 +6,7 @@
 #include <sun.h>
 #include <wifi.h>
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 3600, 0);
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 0);
 
 #define LED 2  //On board LED
 #define RELAY 0  //On board LED
