@@ -6,7 +6,7 @@
 #include <sun.h>
 #include <wifi.h>
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 0);
+NTPClient ntpClient(ntpUDP, "pool.ntp.org", 0, 0);
 
 #define LED 2  //On board LED
 #define RELAY 0  //On board LED
@@ -22,7 +22,7 @@ void everyHour();
 void everyDay();
 
 uint8_t initDone=0;
-uint8_t timeClientUpdate=1;
+uint8_t ntpClientUpdate=1;
 
 SunTime sunTime;
 
@@ -38,17 +38,15 @@ void setup()
 	initializeWiFi(WIFI_SSID, WIFI_PASS, HOSTNAME,WIFI_STA);
 	Serial.println("Starting http server");
 	initializeHTTPServer();
-	setTimeClient(&timeClient);
-	//setSunTime(&sunTime);
-	timeClient.begin();
+	ntpClient.begin();
 	timer1_isr_init();
-      	timer1_attachInterrupt(scheduler);
-      	timer1_enable(TIM_DIV16, TIM_EDGE, TIM_LOOP);
-      	timer1_write(5000000);
+  timer1_attachInterrupt(scheduler);
+  timer1_enable(TIM_DIV16, TIM_EDGE, TIM_LOOP);
+  timer1_write(5000000);
 }
 
 void scheduler(){
-	uint32_t i=timeClient.getEpochTime();
+	uint32_t i=ntpClient.getEpochTime();
 	if(initDone == 0){
 		everyDay();
 		everyMinute();
@@ -68,8 +66,8 @@ void scheduler(){
 }
 
 void everySecond(){
-	Serial.printf("%s %lu %d %d %d",timeClient.getIsoDateTime().c_str(), millis(), timeClient.getMinuteOfDay(), sunTime.sunrise, sunTime.sunset);
-	sunTime.currentTime = timeClient.getMinuteOfDay();
+	Serial.printf("%s %lu %d %d %d",ntpClient.getIsoDateTime().c_str(), millis(), ntpClient.getMinuteOfDay(), sunTime.sunrise, sunTime.sunset);
+	sunTime.currentTime = ntpClient.getMinuteOfDay();
 	if(sunTime.currentTime > sunTime.sunrise && sunTime.currentTime < sunTime.sunset){
 		digitalWrite(RELAY,HIGH);
 		Serial.println("OFF");
@@ -79,7 +77,7 @@ void everySecond(){
 		Serial.println("ON");
 		sunTime.state=1;
 	}
-	if(timeClient.getSeconds()%2){
+	if(ntpClient.getSeconds()%2){
 		digitalWrite(LED,HIGH);
 	}else{
 		digitalWrite(LED,LOW);
@@ -93,7 +91,7 @@ void everyMinute(){
 }
 
 void everyHour(){
-	timeClientUpdate=1;
+	ntpClientUpdate=1;
 }
 
 void everyDay(){
@@ -102,11 +100,11 @@ void everyDay(){
 
 void loop()
 {
-	if(timeClientUpdate==1){
+	if(ntpClientUpdate==1){
 
-		timeClient.update();//update does not work when executed from timer
-		timeClientUpdate=0;
-		struct tm ts = timeClient.getTime();
+		ntpClient.update();//update does not work when executed from timer
+		ntpClientUpdate=0;
+		struct tm ts = ntpClient.getTime();
 		//sunTime.sunrise = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNRISE);
 		//sunTime.sunset = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNSET);
 		sunTime.sunrise = calculateSunrise(ts, WARSZAWA, CIVIL_DAWN, SUNRISE);

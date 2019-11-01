@@ -1,5 +1,5 @@
 #pragma once
-#include <WString.h> 
+#include <WString.h>
 #include <FS.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
@@ -25,5 +25,3 @@ typedef struct SunTime{
 	String uptime();
 	void initializeHTTPServer();
 	void handleClient();
-	void setTimeClient(NTPClient *);
-	void setSunTime(SunTime *);

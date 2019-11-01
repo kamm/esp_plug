@@ -2,12 +2,8 @@
 
 ESP8266WebServer server(80);
 File fsUploadFile;
-NTPClient *tc;
+extern NTPClient ntpClient;
 extern SunTime sunTime;
-
-void setTimeClient(NTPClient *t){
-	tc = t;
-}
 
 String getContentType(String filename) {
 	if (server.hasArg("download")){
@@ -227,8 +223,8 @@ void initializeHTTPServer(){
 		String json = "{";
 		json += "\"test\":\"test1\"";
 		json += ", \"uptime\":\"" + uptime() + "\"";
-		json += ", \"date\":\"" + tc->getIsoDateTime() + "\"";
-		json += ", \"epoch\":\"" + String(tc->getEpochTime()) + "\"";
+		json += ", \"date\":\"" + ntpClient.getIsoDateTime() + "\"";
+		json += ", \"epoch\":\"" + String(ntpClient.getEpochTime()) + "\"";
 		json += ", \"sunrise\":\"" + String(sunTime.sunrise) + "\"";
 		json += ", \"sunset\":\"" + String(sunTime.sunset) + "\"";
 		json += ", \"state\":\"" + String(sunTime.state) + "\"";

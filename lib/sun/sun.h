@@ -2,6 +2,7 @@
 
 #include <time.h>
 #include <math.h>
+#include <c_types.h>
 
 #define SUN_SET_OR_RISE -.83
 #define CIVIL_DAWN -6
@@ -18,5 +19,4 @@ typedef struct geoposition{
 	float lng;
 } geoposition;
 
-int calculateSunrise(struct tm,geoposition, float, int);
-
+uint16_t calculateSunrise(struct tm,geoposition, float, int);
