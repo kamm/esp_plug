@@ -13,7 +13,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org", 0, 0);
 
 String WIFI_SSID("Wawrzyniec");
 String WIFI_PASS("12345678");
-String HOSTNAME("esp");
+String HOSTNAME("espplug");
 
 void scheduler();
 void everySecond();
@@ -24,7 +24,7 @@ void everyDay();
 uint8_t initDone=0;
 uint8_t timeClientUpdate=1;
 
-SunTime sunTime_;
+SunTime sunTime;
 
 geoposition WARSZAWA = {.lat = 52.2298, .lng = 21.0118};
 
@@ -39,7 +39,7 @@ void setup()
 	Serial.println("Starting http server");
 	initializeHTTPServer();
 	setTimeClient(&timeClient);
-	setSunTime(&sunTime_);
+	//setSunTime(&sunTime);
 	timeClient.begin();
 	timer1_isr_init();
       	timer1_attachInterrupt(scheduler);
@@ -68,24 +68,28 @@ void scheduler(){
 }
 
 void everySecond(){
-	Serial.printf("%s %lu %d %d %d",timeClient.getIsoDateTime().c_str(), millis(), timeClient.getMinuteOfDay(), sunTime_.sunrise, sunTime_.sunset);
-	sunTime_.currentTime = timeClient.getMinuteOfDay();
-	if(sunTime_.currentTime > sunTime_.sunrise && sunTime_.currentTime < sunTime_.sunset){
-		digitalWrite(LED,HIGH);
+	Serial.printf("%s %lu %d %d %d",timeClient.getIsoDateTime().c_str(), millis(), timeClient.getMinuteOfDay(), sunTime.sunrise, sunTime.sunset);
+	sunTime.currentTime = timeClient.getMinuteOfDay();
+	if(sunTime.currentTime > sunTime.sunrise && sunTime.currentTime < sunTime.sunset){
 		digitalWrite(RELAY,HIGH);
 		Serial.println("OFF");
-		sunTime_.state=0;
+		sunTime.state=0;
 	}else{
-		digitalWrite(LED,LOW);
 		digitalWrite(RELAY,LOW);
 		Serial.println("ON");
-		sunTime_.state=1;
+		sunTime.state=1;
+	}
+	if(timeClient.getSeconds()%2){
+		digitalWrite(LED,HIGH);
+	}else{
+		digitalWrite(LED,LOW);
+
 	}
 }
 
 void everyMinute(){
-	Serial.printf("Wschod slonca o: %02d:%02d\n", sunTime_.sunrise/60, sunTime_.sunrise%60);
-	Serial.printf("Zachod slonca o: %02d:%02d\n", sunTime_.sunset/60, sunTime_.sunset%60);
+	Serial.printf("Wschod slonca o: %02d:%02d\n", sunTime.sunrise/60, sunTime.sunrise%60);
+	Serial.printf("Zachod slonca o: %02d:%02d\n", sunTime.sunset/60, sunTime.sunset%60);
 }
 
 void everyHour(){
@@ -94,10 +98,6 @@ void everyHour(){
 
 void everyDay(){
 	Serial.println("daily");
-	struct tm ts = timeClient.getTime();
-	sunTime_.sunrise = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNRISE);
-	sunTime_.sunset = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNSET);
-
 }
 
 void loop()
@@ -106,7 +106,11 @@ void loop()
 
 		timeClient.update();//update does not work when executed from timer
 		timeClientUpdate=0;
+		struct tm ts = timeClient.getTime();
+		//sunTime.sunrise = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNRISE);
+		//sunTime.sunset = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNSET);
+		sunTime.sunrise = calculateSunrise(ts, WARSZAWA, CIVIL_DAWN, SUNRISE);
+		sunTime.sunset = calculateSunrise(ts, WARSZAWA, CIVIL_DAWN, SUNSET);
 	}
 	handleClient();
 }
-

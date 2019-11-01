@@ -3,14 +3,10 @@
 ESP8266WebServer server(80);
 File fsUploadFile;
 NTPClient *tc;
-SunTime *sunTime;
+extern SunTime sunTime;
 
 void setTimeClient(NTPClient *t){
 	tc = t;
-}
-
-void setSunTime(SunTime *s){
-	sunTime = s;
 }
 
 String getContentType(String filename) {
@@ -76,10 +72,11 @@ bool handleFileRead(String path) {
 	return false;
 }
 
-void initializeWiFi(String ssid, String password, String host, WiFiMode_t mode){
+void initializeWiFi(String ssid, String password, String hostname, WiFiMode_t mode){
 	WiFi.begin(ssid.c_str(), password.c_str());
 	WiFi.mode(mode);
-	MDNS.begin(host.c_str());
+	WiFi.hostname(hostname);
+	MDNS.begin(hostname.c_str());
 	while(WiFi.status() != WL_CONNECTED){
 		Serial.print(".");
 		delay(100);
@@ -89,7 +86,7 @@ void initializeWiFi(String ssid, String password, String host, WiFiMode_t mode){
 	Serial.print("Wifi conencted, local IP: ");
 	Serial.println(ip);
 	WiFi.printDiag(Serial);
-	
+
 }
 
 
@@ -108,10 +105,6 @@ void handleFileUpload() {
 		fsUploadFile = SPIFFS.open(filename, "w");
 		filename = String();
 	} else if (upload.status == UPLOAD_FILE_WRITE) {
-		/*
-		Serial.print("handleFileUpload Data: ");
-		Serial.println(upload.currentSize);
-		*/
 		if (fsUploadFile){
 			fsUploadFile.write(upload.buf, upload.currentSize);
 		}
@@ -210,69 +203,36 @@ String uptime(){
 }
 
 void initializeHTTPServer(){
-	//SERVER INIT
-	//list directory
 	SPIFFS.begin();
 
 	server.on("/list", HTTP_GET, handleFileList);
-	//load editor
 	server.on("/edit", HTTP_GET, []() {
 		if (!handleFileRead("/edit.htm")){
 			server.send(404, "text/plain", "FileNotFound");
 		}
 	});
-	//create file
 	server.on("/edit", HTTP_PUT, handleFileCreate);
-	//delete file
 	server.on("/edit", HTTP_DELETE, handleFileDelete);
-	//first callback is called after the request has ended with all parsed arguments
-	//second callback handles file uploads at that location
 	server.on("/edit", HTTP_POST, []() {
 		server.send(200, "text/plain", "");
 	}, handleFileUpload);
 
-	//called when the url is not defined here
-	//use it to load content from SPIFFS
 	server.onNotFound([]() {
 		if (!handleFileRead(server.uri())){
 			server.send(404, "text/plain", "FileNotFound");
 		}
 	});
 
-	server.on("/gpio", []() {
-		String state=server.arg("state");
-		int pin = server.arg("pin").toInt();
-		int curstate = (((((GPI) | (GPO)) & 0xFFFF) | ((GP16I & 0x01) << 16) & (1<<(pin))) >> pin) & 1;
-		if (state == "on"){
-			digitalWrite(pin, HIGH);
-		}else if (state == "off"){
-			digitalWrite(pin, LOW);
-		}else if(state == "toggle"){
-
-			if(curstate != 0){
-				digitalWrite(pin, LOW);
-			}else{
-				digitalWrite(pin, HIGH);
-			}
-		}
-		curstate = ((((GPI | GPO) & 0xFFFF) | ((GP16I & 0x01) << 16) & (1<<(pin))) >> pin) & 1;
-		server.send(200, "text/plain", String("{\"res\":\"OK\",\"pin\":")+pin+String(",\"state\":")+curstate+String("}"));
-	});
-
-	//get heap status, analog input value and all GPIO statuses in one json call
 	server.on("/all", HTTP_GET, []() {
 		String json = "{";
 		json += "\"test\":\"test1\"";
-		//json += "\"heap\":" + String(ESP.getFreeHeap());
-		//json += ", \"analog\":" + String(analogRead(A0));
-		//json += ", \"gpio\":" + String((uint32_t)(((GPI | GPO) & 0xFFFF) | ((GP16I & 0x01) << 16)));
 		json += ", \"uptime\":\"" + uptime() + "\"";
 		json += ", \"date\":\"" + tc->getIsoDateTime() + "\"";
 		json += ", \"epoch\":\"" + String(tc->getEpochTime()) + "\"";
-		json += ", \"sunrise\":\"" + String(sunTime->sunrise) + "\"";
-		json += ", \"sunset\":\"" + String(sunTime->sunset) + "\"";
-		json += ", \"state\":\"" + String(sunTime->state) + "\"";
-		json += ", \"currentTime\":\"" + String(sunTime->currentTime) + "\"";
+		json += ", \"sunrise\":\"" + String(sunTime.sunrise) + "\"";
+		json += ", \"sunset\":\"" + String(sunTime.sunset) + "\"";
+		json += ", \"state\":\"" + String(sunTime.state) + "\"";
+		json += ", \"currentTime\":\"" + String(sunTime.currentTime) + "\"";
 
 		json += "}";
 		server.send(200, "text/json", json);
