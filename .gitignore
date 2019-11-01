@@ -2,3 +2,5 @@
 .pioenvs
 .piolibdeps
 old_data
+.gcc-flags.json
+.clang_complete
