@@ -12,8 +12,8 @@ NTPClient ntpClient(ntpUDP, "pool.ntp.org", 0, 0);
 #define RELAY 0  //On board LED
 
 String WIFI_SSID("Wawrzyniec");
-String WIFI_PASS("12345678");
-String HOSTNAME("espplug");
+String WIFI_PASS("1234qwer");
+String HOSTNAME("xmasplug");
 
 void scheduler();
 void everySecond();
@@ -65,9 +65,27 @@ void scheduler(){
 	everySecond();
 }
 
+void recalculateOnOffTime(){
+	//sunTime.sunrise = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNRISE);
+		//sunTime.sunset = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNSET);
+		//sunTime.sunrise = calculateSunrise(ts, WARSZAWA, CIVIL_DAWN, SUNRISE);
+		/*if(ntpClient.getDayOfMonth()==24 && ntpClient.getMonth()==11){
+			//Pierwszy dzień świąt
+			sunTime.sunrise = 0;//światło gaśnie o 02:00 25 grudnia
+		}else{
+			sunTime.sunrise = 22*60;
+		}*/
+		//sunTime.sunset = calculateSunrise(ts, WARSZAWA, CIVIL_DAWN, SUNSET);
+	struct tm ts = ntpClient.getTime();
+	sunTime.sunrise = calculateSunrise(ts, WARSZAWA, CIVIL_DAWN, RISE);
+	sunTime.sunset = calculateSunrise(ts, WARSZAWA, CIVIL_DAWN, SET);
+}
+
 void everySecond(){
 	Serial.printf("%s %lu %d %d %d",ntpClient.getIsoDateTime().c_str(), millis(), ntpClient.getMinuteOfDay(), sunTime.sunrise, sunTime.sunset);
 	sunTime.currentTime = ntpClient.getMinuteOfDay();
+
+	
 	if(sunTime.currentTime > sunTime.sunrise && sunTime.currentTime < sunTime.sunset){
 		digitalWrite(RELAY,HIGH);
 		Serial.println("OFF");
@@ -86,6 +104,7 @@ void everySecond(){
 }
 
 void everyMinute(){
+	recalculateOnOffTime();
 	Serial.printf("Wschod slonca o: %02d:%02d\n", sunTime.sunrise/60, sunTime.sunrise%60);
 	Serial.printf("Zachod slonca o: %02d:%02d\n", sunTime.sunset/60, sunTime.sunset%60);
 }
@@ -104,11 +123,7 @@ void loop()
 
 		ntpClient.update();//update does not work when executed from timer
 		ntpClientUpdate=0;
-		struct tm ts = ntpClient.getTime();
-		//sunTime.sunrise = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNRISE);
-		//sunTime.sunset = calculateSunrise(ts, WARSZAWA, SUN_SET_OR_RISE, SUNSET);
-		sunTime.sunrise = calculateSunrise(ts, WARSZAWA, CIVIL_DAWN, SUNRISE);
-		sunTime.sunset = calculateSunrise(ts, WARSZAWA, CIVIL_DAWN, SUNSET);
+		recalculateOnOffTime();
 	}
 	handleClient();
 }

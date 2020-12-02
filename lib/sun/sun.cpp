@@ -37,11 +37,11 @@ uint16_t calculateSunrise(struct tm ts,geoposition geo, float position, int dire
 
     //7b. finish calculating H and convert into hours
     float H=0;
-    if(direction == SUNRISE)
+    if(direction == RISE)
     {
     	H = 360 - (180/PI)*acos(cosH);   //   if if rising time is desired:
     }
-    else if(direction == SUNSET)
+    else if(direction == SET)
     {
 	H = 360 + (180/PI)*acos(cosH); //   if setting time is desired:
     }

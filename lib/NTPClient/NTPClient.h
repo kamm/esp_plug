@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NTPCLIENT_H
+#define NTPCLIENT_H
 
 #include "Arduino.h"
 #include <Udp.h>
@@ -120,3 +121,4 @@ class NTPClient {
      */
     struct tm getTime() const;
 };
+#endif
