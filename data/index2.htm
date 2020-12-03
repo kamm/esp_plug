@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+  <title>ESP Monitor</title>
+</head>
+<body id="index" style="margin:0; padding:0;" onload="onBodyLoad()">
+  <div id="uptime"></div>
+  <div id="date"></div>
+  <div id="epoch"></div>
+  <div id="sun"></div>
+  <div id="controls" style="display: block; border: 1px solid rgb(68, 68, 68); padding: 5px; margin: 5px; width: 362px; background-color: rgb(238, 238, 238);">
+    <label>Period (ms):</label>
+    <input type="number" id="refresh-rate"/>
+    <input type="button" id="start-button" value="Start"/>
+    <input type="button" id="stop-button" value="Stop"/>
+  </div>
+  <script type="text/javascript">
+    var reloadPeriod = 1000;
+    var running = false;
+    
+    function loadValues(){
+      if(!running) return;
+      var xh = new XMLHttpRequest();
+      xh.onreadystatechange = function(){
+        if (xh.readyState == 4){
+          if(xh.status == 200) {
+            var res = JSON.parse(xh.responseText);
+            document.getElementById("uptime").innerHTML=res.uptime;
+            document.getElementById("date").innerHTML=res.date;
+            document.getElementById("epoch").innerHTML=res.epoch;
+	    sunriseMin = res.sunrise%60;
+	    sunriseHour = (res.sunrise-sunriseMin)/60;
+	    sunsetMin = res.sunset%60;
+	    sunsetHour = (res.sunset-sunsetMin)/60;
+            document.getElementById("sun").innerHTML="Sunrise: "+(sunriseHour<10?"0":"")+sunriseHour+":"+(sunriseMin<10?"0":"")+sunriseMin+ "<br>Sunset: "+(sunsetHour<10?"0":"")+sunsetHour+":"+(sunsetMin<10?"0":"")+sunsetMin;
+		  //res.sunrise+" "+res.sunset+" "+res.currentTime+" "+res.state;
+            if(running) setTimeout(loadValues, reloadPeriod);
+          } else running = false;
+        }
+      };
+      xh.open("GET", "/all", true);
+      xh.send(null);
+    };
+    
+    function run(){
+      if(!running){
+        running = true;
+        loadValues();
+      }
+    }
+    
+    function onBodyLoad(){
+      var refreshInput = document.getElementById("refresh-rate");
+      refreshInput.value = reloadPeriod;
+      refreshInput.onchange = function(e){
+        var value = parseInt(e.target.value);
+        reloadPeriod = (value > 0)?value:0;
+        e.target.value = reloadPeriod;
+      }
+      var stopButton = document.getElementById("stop-button");
+      stopButton.onclick = function(e){
+        running = false;
+      }
+      var startButton = document.getElementById("start-button");
+      startButton.onclick = function(e){
+        run();
+      }
+    }
+  </script>
+</body>
+</html>

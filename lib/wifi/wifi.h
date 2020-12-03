@@ -26,4 +26,5 @@ typedef struct SunTime{
 	String uptime();
 	void initializeHTTPServer();
 	void handleClient();
+	unsigned long calculateUptime(void);
 #endif

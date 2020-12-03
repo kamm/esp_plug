@@ -1,4 +1,12 @@
 #define DEBUG_NTPClient 1
+
+#define MODE_AUTO 0
+#define MODE_MANUAL 1
+
+#define STATE_UNSELECTED 0
+#define STATE_ON 1
+#define STATE_OFF 2
+
 #include "NTPClient.h"
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
@@ -25,6 +33,9 @@ uint8_t initDone=0;
 uint8_t ntpClientUpdate=1;
 
 SunTime sunTime;
+
+int mode=MODE_AUTO;
+int state=STATE_UNSELECTED;
 
 geoposition WARSZAWA = {.lat = 52.2298, .lng = 21.0118};
 
@@ -82,18 +93,40 @@ void recalculateOnOffTime(){
 }
 
 void everySecond(){
-	Serial.printf("%s %lu %d %d %d",ntpClient.getIsoDateTime().c_str(), millis(), ntpClient.getMinuteOfDay(), sunTime.sunrise, sunTime.sunset);
+	//Serial.printf("%s %lu %d %d %d\n",ntpClient.getIsoDateTime().c_str(), millis(), ntpClient.getMinuteOfDay(), sunTime.sunrise, sunTime.sunset);
 	sunTime.currentTime = ntpClient.getMinuteOfDay();
 
-	
-	if(sunTime.currentTime > sunTime.sunrise && sunTime.currentTime < sunTime.sunset){
-		digitalWrite(RELAY,HIGH);
-		Serial.println("OFF");
-		sunTime.state=0;
-	}else{
+	//Serial.println("Mode: "+String(mode)+" State: "+String(state));
+
+	if(mode == MODE_AUTO){
+		if(sunTime.currentTime > sunTime.sunrise && sunTime.currentTime < sunTime.sunset){
+			//Dzien
+			int calculatedState=HIGH;
+
+			if(state==STATE_OFF && mode==MODE_AUTO){
+				state=STATE_UNSELECTED;
+			}else if(state==STATE_ON && mode==MODE_AUTO){
+				calculatedState=LOW;
+			}
+			digitalWrite(RELAY,calculatedState);
+		}else{
+			//Noc
+			int calculatedState=LOW;
+			
+			if(state==STATE_ON && mode==MODE_AUTO){
+				state=STATE_UNSELECTED;
+			}else if(state==STATE_OFF && mode==MODE_AUTO){
+				calculatedState=HIGH;
+			}
+			digitalWrite(RELAY,calculatedState);
+		}
+		//Serial.println("MODE AUTO "+String(state));
+	}else if(mode == MODE_MANUAL && state==STATE_ON){
 		digitalWrite(RELAY,LOW);
-		Serial.println("ON");
-		sunTime.state=1;
+		//Serial.println("MODE MANUAL "+String(state));
+	}else if(mode == MODE_MANUAL && state==STATE_OFF){
+		digitalWrite(RELAY,HIGH);
+		//Serial.println("MODE MANUAL "+String(state));
 	}
 	if(ntpClient.getSeconds()%2){
 		digitalWrite(LED,HIGH);
@@ -105,16 +138,17 @@ void everySecond(){
 
 void everyMinute(){
 	recalculateOnOffTime();
-	Serial.printf("Wschod slonca o: %02d:%02d\n", sunTime.sunrise/60, sunTime.sunrise%60);
-	Serial.printf("Zachod slonca o: %02d:%02d\n", sunTime.sunset/60, sunTime.sunset%60);
+	//Serial.printf("Wschod slonca o: %02d:%02d\n", sunTime.sunrise/60, sunTime.sunrise%60);
+	//Serial.printf("Zachod slonca o: %02d:%02d\n", sunTime.sunset/60, sunTime.sunset%60);
 }
 
 void everyHour(){
 	ntpClientUpdate=1;
+	calculateUptime();
 }
 
 void everyDay(){
-	Serial.println("daily");
+	//Serial.println("daily");
 }
 
 void loop()
@@ -127,3 +161,5 @@ void loop()
 	}
 	handleClient();
 }
+
+

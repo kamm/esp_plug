@@ -4,7 +4,8 @@ ESP8266WebServer server(80);
 File fsUploadFile;
 extern NTPClient ntpClient;
 extern SunTime sunTime;
-
+extern int mode;
+extern int state;
 String getContentType(String filename) {
 	if (server.hasArg("download")){
 		return "application/octet-stream";
@@ -79,7 +80,7 @@ void initializeWiFi(String ssid, String password, String hostname, WiFiMode_t mo
 	}
 	IPAddress ip = WiFi.localIP();
 	Serial.println();
-	Serial.print("Wifi conencted, local IP: ");
+	Serial.print("Wifi connected\nlocal IP: ");
 	Serial.println(ip);
 	WiFi.printDiag(Serial);
 
@@ -187,15 +188,15 @@ String uptime(){
 	long hours = 0;
 	long mins = 0;
 	long secs = 0;
-	long currentmillis = millis();
-	secs = currentmillis / 1000; 		//convect milliseconds to seconds
+	secs = calculateUptime(); 		//get uptime in seconds
 	mins = secs / 60; 					//convert seconds to minutes
 	hours = mins / 60; 					//convert minutes to hours
 	days = hours / 24; 					//convert hours to days
 	secs = secs - (mins * 60); 			//subtract the coverted seconds to minutes in order to display 59 secs max
 	mins = mins - (hours * 60); 		//subtract the coverted minutes to hours in order to display 59 minutes max
 	hours = hours - (days * 24); 		//subtract the coverted hours to days in order to display 23 hours max
-	return String("Uptime is ") + days + " days " + hours + ":" + mins + ":" + secs;
+	
+	return String("Uptime is ") + days + " days " + hours + ":" + (mins<10?"0":"")+mins + ":" + (secs<10?"0":"")+secs;
 }
 
 void initializeHTTPServer(){
@@ -221,19 +222,51 @@ void initializeHTTPServer(){
 
 	server.on("/all", HTTP_GET, []() {
 		String json = "{";
-		json += "\"test\":\"test1\"";
+		json += "\"t\":\"t\"";
 		json += ", \"uptime\":\"" + uptime() + "\"";
 		json += ", \"date\":\"" + ntpClient.getIsoDateTime() + "\"";
 		json += ", \"epoch\":\"" + String(ntpClient.getEpochTime()) + "\"";
 		json += ", \"sunrise\":\"" + String(sunTime.sunrise) + "\"";
 		json += ", \"sunset\":\"" + String(sunTime.sunset) + "\"";
-		json += ", \"state\":\"" + String(sunTime.state) + "\"";
 		json += ", \"currentTime\":\"" + String(sunTime.currentTime) + "\"";
+		json += ", \"mode\":"+String(mode);
+		json += ", \"state\":"+String(state);
 
 		json += "}";
 		server.send(200, "text/json", json);
 		json = String();
 	});
+
+	server.on("/mode",HTTP_GET,[](){
+		if(server.args()==1 && server.argName(0)=="mode" && (server.arg(0)=="0" || server.arg(0)=="1")){
+			mode = server.arg(0).toInt();
+			String json = "{";
+			json += "\"mode\":"+String(mode);
+			json +="}";
+			server.send(200,"text/json",json);
+		}else{
+			server.send(200,"text/json","{\"mode\":"+String(mode)+"}");
+		}
+	});
+
+	server.on("/state",HTTP_GET,[](){
+		if(server.args()==1 && server.argName(0)=="state" && (server.arg(0)=="0" || server.arg(0)=="1" || server.arg(0)=="2")){
+			state = server.arg(0).toInt();
+			String json = "{";
+			json += "\"state\":"+String(state);
+			json +="}";
+			server.send(200,"text/json",json);
+		}else{
+			server.send(200,"text/json","{\"state\":"+String(state)+"}");
+		}
+	});
+
+	server.on("/status",HTTP_GET,[](){
+		String json="{\"mode\":"+String(mode)+",\"state\":"+String(state)+"}";
+		server.send(200,"text/json",json);
+	});
+
+
 
 	server.on("/date",HTTP_GET, []() {
 		String output = "{date:''}";
@@ -247,4 +280,18 @@ void initializeHTTPServer(){
 
 void handleClient(){
 	server.handleClient();
+}
+
+unsigned long calculateUptime(void){
+    static unsigned int _rolloverCount = 0;
+    static unsigned long _lastMillis = 0;
+
+    unsigned long currentMillis = millis();
+    if(currentMillis < _lastMillis){
+	_rolloverCount+=1;
+    }
+
+    _lastMillis = currentMillis;
+
+    return (0xFFFFFFFF/1000)*_rolloverCount + (_lastMillis / 1000);
 }
